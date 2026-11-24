@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Joyscroll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday, hřejivé a lehké, jako ranní kafe s dobrou zprávou
+   IDEA svislý feed jako Shorts, jen každá karta je barevný plakátek s dobrou zprávou
+   PICTURE velký ilustrovaný znak skupiny (slunce nad kopci, tlapka, dvě hlavy se srdcem, kometa) přes horní polovinu karty
+   COLOUR každá skupina má vlastní plnou barvu: příroda zelená, zvířata žlutooranžová, lidé růžová, objevy modrá
+   TYPE Fredoka na nadpisy, Nunito Sans na text
+   LAYOUT jedna obrazovka: lišta se skupinami nahoře, pod ní karty přes celou plochu, na laptopu karta široká max 560px uprostřed */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#121212);--ink:light-dark(#141414,#f3f3f3);--soft:light-dark(#5c5c5c,#a8a8a8);--chip:light-dark(#f0f0f0,#262626)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 "Nunito Sans",system-ui,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+h1,h2{font-family:Fredoka,system-ui,sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.05;margin:0;text-wrap:balance}
+header{flex:none;padding:10px 16px 8px;border-bottom:1px solid var(--chip)}
+.hr{display:flex;justify-content:space-between;align-items:baseline;gap:12px;max-width:560px;margin:0 auto}
+.hr h1{font-size:28px}
+.hr h1 span{color:#ff5a7a}
+.upd{font-size:13px;color:var(--soft);white-space:nowrap}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:560px;margin:8px auto 0;padding-bottom:2px}
+.chips a{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border-radius:20px;background:var(--chip);color:var(--ink);text-decoration:none;font-weight:700;font-size:15px}
+.chips a i{width:10px;height:10px;border-radius:50%}
+.chips a.on{background:var(--ink);color:var(--bg)}
+.chips a:focus-visible,button:focus-visible,.read:focus-visible{outline:3px solid #ff5a7a;outline-offset:2px}
+#feed{flex:1;overflow-y:auto;scroll-snap-type:y mandatory;overscroll-behavior:contain}
+.card{height:100%;scroll-snap-align:start;scroll-snap-stop:always;padding:12px 16px;display:flex}
+.in{max-width:560px;width:100%;margin:0 auto;border-radius:28px;background:var(--c);color:var(--k);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.art{flex:1 1 44%;min-height:140px;position:relative}
+.art svg{position:absolute;inset:0;width:100%;height:100%}
+.txt{flex:none;padding:6px 22px 20px;display:flex;flex-direction:column;gap:10px}
+.meta{display:flex;justify-content:space-between;gap:10px;font-weight:700;font-size:14px;opacity:.85}
+.meta span{white-space:nowrap}
+.txt h2{font-size:clamp(26px,6.4vw,36px)}
+.txt p{margin:0;font-size:17px;max-width:46ch}
+.act{display:flex;gap:10px;align-items:center;margin-top:4px}
+.read{flex:1;display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:16px;background:var(--k);color:var(--c);text-decoration:none;font-weight:700;padding:0 14px;text-align:center;font-size:15px}
+.heart{width:48px;height:48px;border-radius:16px;border:2px solid var(--k);background:transparent;color:var(--k);cursor:pointer;display:grid;place-items:center;padding:0;flex:none}
+.heart svg{width:24px;height:24px}
+.heart.on{background:var(--k);color:var(--c)}
+.end .in{--c:var(--chip);--k:var(--ink);justify-content:center;align-items:center;text-align:center;padding:28px;gap:14px}
+.end h2{font-size:34px}
+.end p{margin:0;max-width:34ch;color:var(--soft)}
+.end button{min-height:48px;border-radius:16px;border:0;background:var(--ink);color:var(--bg);font:700 16px "Nunito Sans",sans-serif;padding:0 20px;cursor:pointer}
+.hint{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);font-size:13px;opacity:.75;font-weight:700;pointer-events:none}
+@keyframes bob{50%{transform:translate(-50%,-5px)}}
+.hint{animation:bob 1.8s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.hint{animation:none}}
+@media(min-height:820px){.txt{padding-bottom:28px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hr"><h1>Joy<span>scroll</span></h1><div class="upd" id="upd">Načítám dobré zprávy…</div></div>
+  <nav class="chips" id="chips">
+    <a href="#vse">Vše</a>
+    <a href="#priroda"><i style="background:#0e7a55"></i>Příroda</a>
+    <a href="#zvirata"><i style="background:#ffb020"></i>Zvířata</a>
+    <a href="#lide"><i style="background:#ff5a7a"></i>Lidé</a>
+    <a href="#objevy"><i style="background:#2f4bff"></i>Objevy</a>
+    <a href="#ulozene">Uložené</a>
+  </nav>
+</header>
+<main id="feed" aria-live="polite"></main>
+
+<script>
+{
+const CL={priroda:{n:'Příroda',c:'#0e7a55',k:'#ffffff',a:'#ffd84d',b:'#13a06f'},zvirata:{n:'Zvířata',c:'#ffb020',k:'#1c1206',a:'#fff1cc',b:'#ff8a1f'},lide:{n:'Lidé',c:'#ff5a7a',k:'#1d0710',a:'#ffe3ea',b:'#ff86a0'},objevy:{n:'Objevy',c:'#2f4bff',k:'#ffffff',a:'#9fe8ff',b:'#5b73ff'}};
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const safeUrl=u=>/^https:\/\//.test(u)?u:'#';
+const $=id=>document.getElementById(id);
+let DATA=[],fav=[];
+try{fav=JSON.parse(localStorage.getItem('joy-fav')||'[]')}catch(e){fav=[]}
+const saveFav=()=>{try{localStorage.setItem('joy-fav',JSON.stringify(fav))}catch(e){}};
+const seed=s=>{let h=7;for(const ch of s)h=(h*31+ch.charCodeAt(0))%2147483647;return()=>(h=h*16807%2147483647)/2147483647};
+function art(cl,id){const p=CL[cl],r=seed(id),j=n=>(r()-.5)*n;let g='';
+if(cl==='priroda'){const sx=200+j(160),sy=95+j(30);
+g=`<circle cx="${sx}" cy="${sy}" r="${58+j(16)}" fill="${p.a}"/><circle cx="${sx}" cy="${sy}" r="${84+j(10)}" fill="none" stroke="${p.a}" stroke-width="3" stroke-dasharray="4 14" opacity=".7"/>`+
+`<path d="M-20 ${230+j(20)} Q ${120+j(60)} ${150+j(30)} 260 ${215+j(20)} T 440 ${200+j(20)} V320 H-20Z" fill="${p.b}"/>`+
+`<path d="M-20 ${262+j(14)} Q ${90+j(50)} ${210+j(20)} 210 ${250+j(14)} T 440 ${240+j(20)} V320 H-20Z" fill="#0a5a3f"/>`+
+[0,1,2].map(i=>{const x=60+i*130+j(40),y=250+j(10);return `<path d="M${x} ${y} l14 -46 l14 46Z" fill="#073d2b"/><rect x="${x+12}" y="${y}" width="4" height="10" fill="#073d2b"/>`}).join('')}
+if(cl==='zvirata'){const cx=200+j(80),cy=170+j(20),rot=j(40);
+g=`<circle cx="${70+j(40)}" cy="${60+j(20)}" r="${30+j(10)}" fill="${p.b}" opacity=".6"/><circle cx="${340+j(40)}" cy="${250+j(20)}" r="${40+j(10)}" fill="${p.b}" opacity=".6"/>`+
+`<g transform="rotate(${rot} ${cx} ${cy})"><ellipse cx="${cx}" cy="${cy+30}" rx="62" ry="52" fill="${p.k}"/><ellipse cx="${cx-6}" cy="${cy+22}" rx="40" ry="26" fill="${p.k}" opacity=".0"/>`+
+[[-70,-30,22],[-28,-68,24],[28,-68,24],[70,-30,22]].map(t=>`<ellipse cx="${cx+t[0]}" cy="${cy+t[1]}" rx="${t[2]}" ry="${t[2]*1.25}" fill="${p.k}"/>`).join('')+
+`<ellipse cx="${cx-18}" cy="${cy+16}" rx="16" ry="9" fill="${p.a}" opacity=".35"/></g>`}
+if(cl==='lide'){const cx=200+j(60),cy=150+j(16);
+g=`<circle cx="${cx-48}" cy="${cy-14}" r="44" fill="${p.k}"/><circle cx="${cx+48}" cy="${cy-14}" r="44" fill="${p.a}"/><path d="M${cx-110} 330 Q ${cx-108} ${cy+40} ${cx-48} ${cy+40} Q ${cx+12} ${cy+40} ${cx+10} 330Z" fill="${p.k}"/><path d="M${cx-10} 330 Q ${cx-12} ${cy+40} ${cx+48} ${cy+40} Q ${cx+108} ${cy+40} ${cx+110} 330Z" fill="${p.a}"/>`+
+`<path d="M${cx} ${cy-58} c -10 -22 -40 -16 -38 6 c 2 16 24 28 38 40 c 14 -12 36 -24 38 -40 c 2 -22 -28 -28 -38 -6Z" fill="${p.b}" stroke="${p.k}" stroke-width="4" transform="translate(0 ${-30+j(10)})"/>`+
+Array.from({length:7},()=>`<circle cx="${r()*400}" cy="${r()*110}" r="${2+r()*4}" fill="${p.a}" opacity=".8"/>`).join('')}
+if(cl==='objevy'){const cx=200+j(90),cy=150+j(30);
+g=Array.from({length:26},()=>`<circle cx="${r()*400}" cy="${r()*300}" r="${.8+r()*2.2}" fill="${p.a}" opacity="${.4+r()*.6}"/>`).join('')+
+`<ellipse cx="${cx}" cy="${cy}" rx="${130+j(30)}" ry="${40+j(14)}" fill="none" stroke="${p.a}" stroke-width="3" transform="rotate(${-18+j(20)} ${cx} ${cy})"/>`+
+`<circle cx="${cx}" cy="${cy}" r="50" fill="${p.b}"/><path d="M${cx-50} ${cy} A50 50 0 0 0 ${cx+50} ${cy}Z" fill="#1d33c9"/><circle cx="${cx-16}" cy="${cy-18}" r="10" fill="${p.a}" opacity=".55"/>`+
+`<path d="M${cx+110} ${cy-80} l6 16 l16 6 l-16 6 l-6 16 l-6 -16 l-16 -6 l16 -6Z" fill="${p.a}"/>`}
+return `<svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">${g}</svg>`}
+const heart='<svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.5 5c2.1 0 3.6 1.2 4.5 2.6C11.9 6.2 13.4 5 15.5 5 19 5 21 8.6 19.6 11.8 17.5 16.4 12 21 12 21z" fill="currentColor"/></svg>';
+const fmt=d=>{const x=new Date(d+'T12:00:00');return x.getDate()+'. '+(x.getMonth()+1)+'.'};
+function view(){const h=location.hash.slice(1);return ['priroda','zvirata','lide','objevy','ulozene'].includes(h)?h:'vse'}
+function render(){const v=view();document.querySelectorAll('#chips a').forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+v));
+let list=DATA.filter(s=>CL[s.c]);
+if(v==='ulozene')list=list.filter(s=>fav.includes(s.id));else if(v!=='vse')list=list.filter(s=>s.c===v);
+const cards=list.map((s,i)=>{const p=CL[s.c],on=fav.includes(s.id);return `<section class="card"><article class="in" style="--c:${p.c};--k:${p.k}"><div class="art">${art(s.c,s.id)}</div><div class="txt"><div class="meta"><span>${esc(p.n)}</span><span>${esc(fmt(s.d))}</span></div><h2>${esc(s.t)}</h2><p>${esc(s.s)}</p><div class="act"><a class="read" href="${esc(safeUrl(s.u))}" target="_blank" rel="noopener">Číst celé · ${esc(s.src)}</a><button class="heart ${on?'on':''}" data-id="${esc(s.id)}" aria-pressed="${on}" aria-label="Uložit">${heart}</button></div></div>${i===0?'<div class="hint">Táhni nahoru</div>':''}</article></section>`}).join('');
+const end=v==='ulozene'&&!list.length?`<section class="card end"><div class="in"><h2>Zatím nic uloženého</h2><p>Srdíčkem si schováš zprávy, ke kterým se chceš vrátit nebo je někomu povědět.</p><button data-go="vse">Zpět na všechny</button></div></section>`:
+`<section class="card end"><div class="in"><h2>To je pro dnešek všechno dobré</h2><p>${list.length} dobrých zpráv. Teď odlož telefon a udělej někomu den o kousek lepší. Nové zprávy přibudou zítra ráno.</p><button data-go="top">Znovu od začátku</button></div></section>`;
+$('feed').innerHTML=cards+end;$('feed').scrollTop=0}
+$('feed').addEventListener('click',e=>{const b=e.target.closest('.heart');if(b){const id=b.dataset.id,i=fav.indexOf(id);if(i<0)fav.push(id);else fav.splice(i,1);saveFav();b.classList.toggle('on',i<0);b.setAttribute('aria-pressed',i<0);if(view()==='ulozene')render();return}
+const g=e.target.closest('[data-go]');if(g){if(g.dataset.go==='top')$('feed').scrollTo({top:0,behavior:'smooth'});else location.hash='vse'}});
+document.addEventListener('keydown',e=>{const f=$('feed');if(e.key==='ArrowDown'||e.key==='j'){f.scrollBy({top:f.clientHeight,behavior:'smooth'});e.preventDefault()}if(e.key==='ArrowUp'||e.key==='k'){f.scrollBy({top:-f.clientHeight,behavior:'smooth'});e.preventDefault()}});
+window.addEventListener('hashchange',render);
+fetch('stories.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(j=>{
+DATA=(j.items||[]).slice().sort((a,b)=>String(b.d).localeCompare(String(a.d)));
+const u=new Date(j.updated);$('upd').textContent=isNaN(u)?'':'Aktualizováno '+u.getDate()+'. '+(u.getMonth()+1)+'. '+String(u.getHours()).padStart(2,'0')+':'+String(u.getMinutes()).padStart(2,'0');render()})
+.catch(()=>{$('upd').textContent='';$('feed').innerHTML='<section class="card end"><div class="in"><h2>Dobré zprávy se nenačetly</h2><p>Zkus stránku obnovit. Svět mezitím dobrý zůstává.</p></div></section>'});
+}
+</script>
+</body>
+</html>
