@@ -1,0 +1,19 @@
+{
+  "name": "Joyscroll – jen dobré zprávy",
+  "short_name": "Joyscroll",
+  "description": "Jen dobré zprávy. Každé ráno nové, pak odlož telefon.",
+  "lang": "cs",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ff5a7a",
+  "categories": ["news", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
