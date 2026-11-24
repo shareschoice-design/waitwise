@@ -1,5 +1,5 @@
 // Joyscroll service worker: appka jde spustit i bez signálu, zprávy se berou vždy čerstvé, když to jde.
-const V = 'joyscroll-v2';
+const V = 'joyscroll-v3';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
